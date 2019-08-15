@@ -1,0 +1,37 @@
+buildscript {
+    ext {
+        compileSdkVersion   = 28                // or higher
+        targetSdkVersion    = 28                // or higher
+        appCompatVersion    = "1.0.2"           // or higher
+        playServicesLocationVersion = "17.0.0"  // or higher
+    }
+
+    repositories {
+        google()
+        jcenter()
+    }
+
+    dependencies {
+        // classpath 'com.android.tools.build:gradle:3.2.1'
+        classpath 'com.android.tools.build:gradle:3.3.1' // or higher
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+    }
+}
+
+rootProject.buildDir = '../build'
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(':app')
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
