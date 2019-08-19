@@ -1,3 +1,8 @@
+import 'dart:async';
+
+import 'package:background_location_flutter/models/location.dart';
+import 'package:background_location_flutter/repositories/locations_repository/src/location_entity.dart';
+import 'package:background_location_flutter/repositories/locations_repository_flutter/src/repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_geolocation/flutter_background_geolocation.dart'
     as bg;
@@ -61,8 +66,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+
+    // Create a Dog and add it to the dogs table.
+    // final newLocation = Location(
+    //   id: 0,
+    //   lat: 10,
+    //   lng: 35,
+    // );
+
+    LocationsRepositoryFlutter repo = LocationsRepositoryFlutter();
 
     ////
     // 1.  Listen to events (See docs for all 12 available events).
@@ -71,6 +84,7 @@ class _MyHomePageState extends State<MyHomePage> {
     // Fired whenever a location is recorded
     bg.BackgroundGeolocation.onLocation((bg.Location location) {
       print('[location] - $location');
+      repo.insert(Location(lat: location.coords.latitude, lng: location.coords.longitude, id: location.uuid).toEntity());
     });
 
     // Fired whenever the plugin changes motion-state (stationary->moving and vice-versa)
@@ -83,21 +97,26 @@ class _MyHomePageState extends State<MyHomePage> {
       print('[providerchange] - $event');
     });
 
+    Timer(new Duration(seconds: 1), () async {
+      List<LocationEntity> locations = await repo.load();
+      print(locations);
+    });
+
     ////
     ///
     // 2.  Configure the plugin
     //
     bg.BackgroundGeolocation.ready(bg.Config(
-            desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
-            distanceFilter: 10.0,
-            stopOnTerminate: false,
-            startOnBoot: true,
-            debug: true,
-            stopOnStationary: false,
-            preventSuspend: true,
-            logLevel: bg.Config.LOG_LEVEL_VERBOSE,
-            reset: true))
-        .then((bg.State state) {
+      desiredAccuracy: bg.Config.DESIRED_ACCURACY_HIGH,
+      distanceFilter: 10.0,
+      stopOnTerminate: false,
+      startOnBoot: true,
+      debug: true,
+      stopOnStationary: false,
+      preventSuspend: true,
+      logLevel: bg.Config.LOG_LEVEL_VERBOSE,
+      reset: true,
+    )).then((bg.State state) {
       if (!state.enabled) {
         ////
         // 3.  Start the plugin.
