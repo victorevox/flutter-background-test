@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:background_location_flutter/models/location.dart';
 import 'package:background_location_flutter/repositories/locations_repository/src/location_entity.dart';
 import 'package:background_location_flutter/repositories/locations_repository_flutter/src/repository.dart';
@@ -53,14 +51,24 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
-  void _incrementCounter() {
+  List<Location> _locations = List.from([]);
+  LocationsRepositoryFlutter _locationsRepositoryFlutter;
+
+  void _incrementCounter() async {
+    List<LocationEntity> locations =
+        await this._locationsRepositoryFlutter.load();
+    this._locations = locations.map((l) => Location.fromEntity(l)).toList();
+
+    int count = await this._locationsRepositoryFlutter.count();
+
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
       // so that the display can reflect the updated values. If we changed
       // _counter without calling setState(), then the build method would not be
       // called again, and so nothing would appear to happen.
-      _counter++;
+      // _counter++;
+      _counter = count;
     });
   }
 
@@ -75,7 +83,7 @@ class _MyHomePageState extends State<MyHomePage> {
     //   lng: 35,
     // );
 
-    LocationsRepositoryFlutter repo = LocationsRepositoryFlutter();
+    this._locationsRepositoryFlutter = LocationsRepositoryFlutter();
 
     ////
     // 1.  Listen to events (See docs for all 12 available events).
@@ -84,7 +92,13 @@ class _MyHomePageState extends State<MyHomePage> {
     // Fired whenever a location is recorded
     bg.BackgroundGeolocation.onLocation((bg.Location location) {
       print('[location] - $location');
-      repo.insert(Location(lat: location.coords.latitude, lng: location.coords.longitude, id: location.uuid).toEntity());
+      this._locationsRepositoryFlutter.insert(Location(
+            lat: location.coords.latitude,
+            lng: location.coords.longitude,
+            id: location.uuid,
+            time: DateTime.parse(location.timestamp),
+            speed: location.coords.speed,
+          ).toEntity());
     });
 
     // Fired whenever the plugin changes motion-state (stationary->moving and vice-versa)
@@ -97,10 +111,11 @@ class _MyHomePageState extends State<MyHomePage> {
       print('[providerchange] - $event');
     });
 
-    Timer(new Duration(seconds: 1), () async {
-      List<LocationEntity> locations = await repo.load();
-      print(locations);
-    });
+    // Timer(new Duration(seconds: 1), () async {
+    //   List<LocationEntity> locations =
+    //       await this._locationsRepositoryFlutter.load();
+    //   print(locations);
+    // });
 
     ////
     ///
@@ -134,6 +149,9 @@ class _MyHomePageState extends State<MyHomePage> {
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
+
+    const int resultsToShow = 50;
+
     return Scaffold(
       appBar: AppBar(
         // Here we take the value from the MyHomePage object that was created by
@@ -144,31 +162,53 @@ class _MyHomePageState extends State<MyHomePage> {
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
         child: Column(
-          // Column is also layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.display1,
-            ),
-          ],
-        ),
+            // Column is also layout widget. It takes a list of children and
+            // arranges them vertically. By default, it sizes itself to fit its
+            // children horizontally, and tries to be as tall as its parent.
+            //
+            // Invoke "debug painting" (press "p" in the console, choose the
+            // "Toggle Debug Paint" action from the Flutter Inspector in Android
+            // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
+            // to see the wireframe for each widget.
+            //
+            // Column has various properties to control how it sizes itself and
+            // how it positions its children. Here we use mainAxisAlignment to
+            // center the children vertically; the main axis here is the vertical
+            // axis because Columns are vertical (the cross axis would be
+            // horizontal).
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Column(
+                children: <Widget>[
+                  Text(
+                    'You have pushed the button this many times:',
+                  ),
+                  Text(
+                    '$_counter',
+                    style: Theme.of(context).textTheme.display1,
+                  ),
+                  Text('Showing last $resultsToShow results: ')
+                ],
+              ),
+              Container(
+                height: 350,
+                width: double.infinity,
+                child: ListView(
+                  children: this
+                      ._locations
+                      .reversed
+                      .take(resultsToShow)
+                      .map((location) => ListTile(
+                            contentPadding: EdgeInsets.all(10),
+                            title: Text(location.id),
+                            subtitle: Text(location.lat.toString() +
+                                ', ' +
+                                location.lng.toString() + ' | ' + location.speed.toString() + ' + ' + location.timestamp),
+                          ))
+                      .toList(),
+                ),
+              )
+            ]),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounter,

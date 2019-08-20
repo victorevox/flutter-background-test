@@ -8,6 +8,7 @@ abstract class LocationsRepository {
 
   Future<List<LocationEntity>> load();
   Future insert(LocationEntity location);
+  Future<int> count();
   // Future<void> clearAll();
   // Future<void> clearCells(
   //   List<String> cellsLetter

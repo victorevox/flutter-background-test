@@ -15,18 +15,24 @@ class LocationsRepositoryFlutter implements LocationsRepository {
   
   @override
   Future<List<LocationEntity>> load() async {
-    // TODO: implement load
-    if(this.db.database == null) {
-      return Future.any(List.from([]));
+    if(this.db == null) {
+      return Future.value(List.from([]));
     }
     List maps = await this.db.load();
-    return maps.map((map) => LocationEntity.fromMap(map));
+    return maps.map((map) => LocationEntity.fromMap(map)).toList();
   }
 
   @override
   Future insert(LocationEntity location) {
-    if(this.db.database == null) {return Future.any(null);}
+    if(this.db == null) {return Future.value(null);}
     return this.db.insert(location);
+  }
+
+  @override
+  Future<int> count() async {
+    if(this.db == null) {return Future.value(null);}
+    int count = await this.db.count();
+    return count;
   }
 
 }

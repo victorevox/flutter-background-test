@@ -15,15 +15,23 @@ class LocationsDb {
       // constructed for each platform.
       path.join(await sql.getDatabasesPath(), 'location_database.db'),
       // When the database is first created, create a table to store locations.
-      onCreate: (db, version) {
+      onCreate: (db, version) async {
         // Run the CREATE TABLE statement on the database.
-        return db.execute(
-          "CREATE TABLE locations(id TEXT PRIMARY KEY, lat DOUBLE, lng DOUBLE)",
-        );
+        var batch = db.batch();
+        _createLocationsTableV2(batch);
+        await batch.commit();
       },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        var batch = db.batch();
+        if(oldVersion != 2) {
+          _updateLocationTableV1toV2(batch);
+        }
+        await batch.commit();
+      },
+      onDowngrade: sql.onDatabaseDowngradeDelete,
       // Set the version. This executes the onCreate function and provides a
       // path to perform database upgrades and downgrades.
-      version: 1,
+      version: 2,
     );
     return LocationsDb(database: database);
   }
@@ -48,4 +56,30 @@ class LocationsDb {
     return this.database.query("locations");
   }
 
+  Future <int> count() async {
+    var resultList = await this.database.rawQuery("SELECT COUNT(id) FROM locations");
+    dynamic count = resultList.first.values.first;
+    return count;
+  }
+
+}
+
+
+void _createLocationsTableV2(sql.Batch batch) {
+  batch.execute('DROP TABLE IF EXISTS locations');
+  batch.execute('''CREATE TABLE locations(
+    id TEXT PRIMARY KEY, 
+    lat DOUBLE, 
+    lng DOUBLE,
+    time INTEGER, 
+    speed DOUBLE
+    )
+  ''');
+}
+
+void _updateLocationTableV1toV2(sql.Batch batch) {
+  batch.execute('''ALTER TABLE locations ADD 
+    time: INTEGER, 
+    speed: DOUBLE
+  ''');
 }
